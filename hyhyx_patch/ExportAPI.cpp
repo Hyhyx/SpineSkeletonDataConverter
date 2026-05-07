@@ -1,18 +1,24 @@
 #include "ExportAPI.h"
-#include <string>
 
-// 屏蔽入口函数并包含逻辑
+// 屏蔽 main
 #define main original_main
-#include "../src/main.cpp"
-#undef main
 
+// 直接包含源文件。
+// 注意：不要在之前包含 <string> 或 <vector>，完全复用 main.cpp 的环境。
+#include "../src/main.cpp"
+
+// 此时 convertFile 已经在作用域内，且 string 等类型完全对齐
 bool ConvertSpineData(const char* input_path, const char* output_path, const char* version) {
+    // 基础防御性检查
     if (!input_path || !output_path || !version) return false;
-    
-    // 显式转换为 std::string 以匹配 main.cpp 中的 bool convertFile(string, string, string)
-    return convertFile(
-        std::string(input_path), 
-        std::string(output_path), 
-        std::string(version)
-    );
+
+    try {
+        // 直接调用。由于我们就在 main.cpp 的编译单元里，
+        // 编译器会直接匹配到 bool convertFile(string, string, string)
+        return convertFile(input_path, output_path, version);
+    } catch (...) {
+        return false;
+    }
 }
+
+#undef main
