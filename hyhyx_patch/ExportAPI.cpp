@@ -1,24 +1,39 @@
 #include "ExportAPI.h"
 
-// 屏蔽 main
+// 1. 屏蔽 main 入口
 #define main original_main
-
-// 直接包含源文件。
-// 注意：不要在之前包含 <string> 或 <vector>，完全复用 main.cpp 的环境。
 #include "../src/main.cpp"
+#undef main
 
-// 此时 convertFile 已经在作用域内，且 string 等类型完全对齐
 bool ConvertSpineData(const char* input_path, const char* output_path, const char* version) {
-    // 基础防御性检查
     if (!input_path || !output_path || !version) return false;
 
-    try {
-        // 直接调用。由于我们就在 main.cpp 的编译单元里，
-        // 编译器会直接匹配到 bool convertFile(string, string, string)
-        return convertFile(input_path, output_path, version);
-    } catch (...) {
-        return false;
-    }
-}
+    std::string inPath = input_path;
+    std::string outPath = output_path;
+    std::string verStr = version;
 
-#undef main
+    // 2. 复用 main.cpp 里的解析函数
+    // 解析目标版本枚举
+    SpineVersion outVer = parseVersionString(verStr);
+    if (outVer == SpineVersion::Invalid) return false;
+
+    // 识别输入格式
+    FileFormat inFmt = (inPath.ends_with(".json")) ? FileFormat::Json : FileFormat::Skel;
+    // 识别输出格式
+    FileFormat outFmt = (outPath.ends_with(".json")) ? FileFormat::Json : FileFormat::Skel;
+    
+    // 自动检测输入文件的版本
+    SpineVersion inVer = detectSpineVersion(inPath);
+
+    // 3. 调用 8 参数的核心函数
+    return convertFile(
+        inPath,      // inputFile
+        outPath,     // outputFile
+        inFmt,       // inputFormat
+        outFmt,      // outputFormat
+        inVer,       // inputVersion
+        outVer,      // outputVersion
+        verStr,      // outputVersionString (这里传完整的三段式版本号)
+        false        // removeCurveOption
+    );
+}
