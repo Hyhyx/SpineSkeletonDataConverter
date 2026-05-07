@@ -1,0 +1,32 @@
+name: Build Static Library (MSVC)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PROJECT_INCLUDE="hyhyx_patch/StaticLib.cmake"
+
+      - name: Build
+        run: cmake --build build --config Release --target SpineConverterStatic
+
+      - name: Prepare
+        shell: pwsh
+        run: |
+          mkdir dist/lib, dist/include
+          copy build/Release/SpineConverterStatic.lib dist/lib/
+          copy hyhyx_patch/ExportAPI.h dist/include/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpineConverter-Static-Win
+          path: dist/
